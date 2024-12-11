@@ -162,6 +162,7 @@ function generateRows(startIndex = 0) {
         playerNames.forEach(() => {
             row.innerHTML += `<td><input type='number' class='predicted' min='0'></td>`;
         });
+        row.innerHTML += `<td><button class="button" onclick="lockRow(this)">Lock In</button></td>`;
         tbody.appendChild(row);
     }
 }
@@ -169,6 +170,13 @@ function generateRows(startIndex = 0) {
 function addGames() {
     const currentRows = document.getElementById('gridTable').querySelector('tbody').rows.length;
     generateRows(currentRows);
+}
+
+function lockRow(button) {
+    const row = button.closest('tr');
+    const inputs = row.querySelectorAll('input');
+    inputs.forEach(input => input.disabled = true);
+    button.disabled = true;
 }
 
 function setupScoreTable() {
