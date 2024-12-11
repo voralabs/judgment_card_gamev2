@@ -131,10 +131,20 @@ function createGameGrid() {
 
 function generateRows(startIndex = 0) {
     const tbody = document.getElementById('gridTable').querySelector('tbody');
-    const maxCards = Math.floor(52 / numPlayers) * 2;
+    const maxCards = Math.floor(52 / numPlayers);
+    const pattern = [];
+
+    // Generate the sequence for Number of Cards
+    for (let i = maxCards; i >= 0; i--) {
+        pattern.push(i);
+    }
+    for (let i = 1; i <= maxCards; i++) {
+        pattern.push(i);
+    }
+
     for (let i = startIndex; i < startIndex + 10; i++) {
         const suit = suits[i % suits.length];
-        const cards = (i % maxCards) + 1;
+        const cards = pattern[i % pattern.length];
         const row = document.createElement('tr');
         row.innerHTML = `<td>${suit}</td><td>${cards}</td>`;
         playerNames.forEach(() => {
