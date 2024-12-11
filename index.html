@@ -41,6 +41,9 @@
             background-color: red;
             color: white;
         }
+        .suit-icon {
+            font-size: 24px;
+        }
     </style>
 </head>
 <body>
@@ -63,6 +66,7 @@
     <table id="gridTable">
         <thead>
             <tr>
+                <th>Icon</th>
                 <th>Game Suit</th>
                 <th>Number of Cards</th>
             </tr>
@@ -89,6 +93,13 @@
 let numPlayers = 0;
 let playerNames = [];
 const suits = ["Spade", "Diamond", "Club", "Heart", "None"];
+const suitIcons = {
+    "Spade": "♠",
+    "Diamond": "♦",
+    "Club": "♣",
+    "Heart": "♥",
+    "None": "" // No icon for None
+};
 
 function setupPlayers() {
     numPlayers = parseInt(document.getElementById('numPlayers').value);
@@ -144,9 +155,10 @@ function generateRows(startIndex = 0) {
 
     for (let i = startIndex; i < startIndex + 10; i++) {
         const suit = suits[i % suits.length];
+        const icon = suitIcons[suit];
         const cards = pattern[i % pattern.length];
         const row = document.createElement('tr');
-        row.innerHTML = `<td>${suit}</td><td>${cards}</td>`;
+        row.innerHTML = `<td class="suit-icon">${icon}</td><td>${suit}</td><td>${cards}</td>`;
         playerNames.forEach(() => {
             row.innerHTML += `<td><input type='number' class='predicted' min='0'></td>`;
         });
