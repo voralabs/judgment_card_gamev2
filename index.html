@@ -36,17 +36,10 @@
         .green {
             background-color: green;
             color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            margin-right: 5px;
         }
         .red {
             background-color: red;
             color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
         }
         .suit-icon {
             font-size: 24px;
@@ -167,11 +160,7 @@ function generateRows(startIndex = 0) {
         const row = document.createElement('tr');
         row.innerHTML = `<td class="suit-icon">${icon}</td><td>${suit}</td><td>${cards}</td>`;
         playerNames.forEach(() => {
-            row.innerHTML += `<td>
-                                <input type='number' class='predicted' min='0'>
-                                <button class="green" onclick="updateScore(this, true)">✓</button>
-                                <button class="red" onclick="updateScore(this, false)">✗</button>
-                              </td>`;
+            row.innerHTML += `<td><input type='number' class='predicted' min='0'><div><button class='button green' onclick='updateScore(this, true)'>✔</button><button class='button red' onclick='updateScore(this, false)'>✘</button></div></td>`;
         });
         row.innerHTML += `<td><button class="button" onclick="lockRow(this)">Lock In</button></td>`;
         tbody.appendChild(row);
@@ -190,6 +179,22 @@ function lockRow(button) {
     button.disabled = true;
 }
 
+function updateScore(button, isWin) {
+    const cell = button.closest('td');
+    const input = cell.querySelector('input');
+    if (input.disabled) {
+        const playerIndex = Array.from(cell.parentElement.cells).indexOf(cell) - 3; // Offset for non-player columns
+        const scoreBody = document.getElementById('scoreBody');
+        const scoreRow = scoreBody.rows[playerIndex];
+        const scoreCell = scoreRow.cells[1];
+        const currentScore = parseInt(scoreCell.textContent);
+        const roundPoints = parseInt(input.value) * 10;
+        if (isWin) {
+            scoreCell.textContent = currentScore + roundPoints;
+        }
+    }
+}
+
 function setupScoreTable() {
     const scoreBody = document.getElementById('scoreBody');
     scoreBody.innerHTML = '';
@@ -199,29 +204,6 @@ function setupScoreTable() {
         scoreBody.appendChild(row);
     });
     document.getElementById('scoreTable').style.display = 'block';
-}
-
-function updateScore(button, won) {
-    const cell = button.closest('td');
-    const input = cell.querySelector('input');
-    if (input.disabled) {
-        alert("This round is already locked.");
-        return;
-    }
-
-    const playerIndex = Array.from(cell.parentNode.children).indexOf(cell) - 3; // Adjust index
-    const scoreTable = document.getElementById('scoreBody');
-    const scoreRow = scoreTable.children[playerIndex];
-    const scoreCell = scoreRow.querySelector('td:nth-child(2)');
-
-    const predictedValue = parseInt(input.value) || 0;
-    let currentScore = parseInt(scoreCell.textContent) || 0;
-
-    if (won) {
-        currentScore += predictedValue * 10;
-    }
-
-    scoreCell.textContent = currentScore;
 }
 </script>
 
