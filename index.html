@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Card Game Web App</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        table, th, td {
+            border: 1px solid #000;
+        }
+        th, td {
+            padding: 10px;
+            text-align: center;
+        }
+        .button {
+            padding: 10px 15px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .green {
+            background-color: green;
+            color: white;
+        }
+        .red {
+            background-color: red;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Card Game</h1>
+<div id="setup">
+    <label for="numPlayers">Enter Number of Players:</label>
+    <input type="number" id="numPlayers" min="2" required>
+    <button class="button" onclick="setupPlayers()">Next</button>
+</div>
+
+<div id="playerNames" style="display:none;">
+    <h2>Enter Player Names:</h2>
+    <div id="playerInputs"></div>
+    <button class="button" onclick="createGameGrid()">Create Game Grid</button>
+</div>
+
+<div id="gameGrid" style="display:none;">
+    <h2>Game Grid</h2>
+    <table id="gridTable">
+        <thead>
+            <tr>
+                <th>Game Suit</th>
+                <th>Number of Cards</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+    <button class="button" onclick="addGames()">Add Games</button>
+</div>
+
+<div id="scoreTable" style="display:none;">
+    <h2>Score Summary</h2>
+    <table>
+        <thead>
+            <tr id="scoreHeader">
+                <th>Player</th>
+                <th>Total Points</th>
+            </tr>
+        </thead>
+        <tbody id="scoreBody"></tbody>
+    </table>
+</div>
+
+<script>
+let numPlayers = 0;
+let playerNames = [];
+const suits = ["Spade", "Diamond", "Club", "Heart", "None"];
+
+function setupPlayers() {
+    numPlayers = parseInt(document.getElementById('numPlayers').value);
+    if (numPlayers < 2) {
+        alert('Please enter at least 2 players.');
+        return;
+    }
+    document.getElementById('setup').style.display = 'none';
+    const playerInputs = document.getElementById('playerInputs');
+    playerInputs.innerHTML = '';
+    for (let i = 1; i <= numPlayers; i++) {
+        playerInputs.innerHTML += `<label for="player${i}">Player ${i} Name:</label>
+                                  <input type="text" id="player${i}" required><br>`;
+    }
+    document.getElementById('playerNames').style.display = 'block';
+}
+
+function createGameGrid() {
+    playerNames = [];
+    for (let i = 1; i <= numPlayers; i++) {
+        const name = document.getElementById(`player${i}`).value.trim();
+        if (!name) {
+            alert('All player names are required.');
+            return;
+        }
+        playerNames.push(name);
+    }
+    document.getElementById('playerNames').style.display = 'none';
+    const gridTable = document.getElementById('gridTable');
+    const headerRow = gridTable.querySelector('thead tr');
+    playerNames.forEach(name => {
+        const th = document.createElement('th');
+        th.textContent = name[0].toUpperCase() + name.slice(1).toLowerCase();
+        headerRow.appendChild(th);
+    });
+    generateRows();
+    document.getElementById('gameGrid').style.display = 'block';
+    setupScoreTable();
+}
+
+function generateRows(startIndex = 0) {
+    const tbody = document.getElementById('gridTable').querySelector('tbody');
+    const maxCards = Math.floor(52 / numPlayers) * 2;
+    for (let i = startIndex; i < startIndex + 10; i++) {
+        const suit = suits[i % suits.length];
+        const cards = (i % maxCards) + 1;
+        const row = document.createElement('tr');
+        row.innerHTML = `<td>${suit}</td><td>${cards}</td>`;
+        playerNames.forEach(() => {
+            row.innerHTML += `<td><input type='number' class='predicted' min='0'></td>`;
+        });
+        tbody.appendChild(row);
+    }
+}
+
+function addGames() {
+    const currentRows = document.getElementById('gridTable').querySelector('tbody').rows.length;
+    generateRows(currentRows);
+}
+
+function setupScoreTable() {
+    const scoreBody = document.getElementById('scoreBody');
+    scoreBody.innerHTML = '';
+    playerNames.forEach(name => {
+        const row = document.createElement('tr');
+        row.innerHTML = `<td>${name[0].toUpperCase() + name.slice(1).toLowerCase()}</td><td>0</td>`;
+        scoreBody.appendChild(row);
+    });
+    document.getElementById('scoreTable').style.display = 'block';
+}
+</script>
+
+</body>
+</html>
