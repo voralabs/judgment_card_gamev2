@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Judgment Card Game</title>
+    <title>Card Game Web App</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -36,10 +36,21 @@
         .green {
             background-color: green;
             color: white;
+            font-size: 12px;
+            padding: 5px;
+            border-radius: 3px;
         }
         .red {
             background-color: red;
             color: white;
+            font-size: 12px;
+            padding: 5px;
+            border-radius: 3px;
+        }
+        .faded {
+            background-color: grey !important;
+            color: white;
+            cursor: not-allowed;
         }
         .suit-icon {
             font-size: 24px;
@@ -48,7 +59,7 @@
 </head>
 <body>
 
-<h1>Judgment Card Game</h1>
+<h1>Card Game</h1>
 <div id="setup">
     <label for="numPlayers">Enter Number of Players:</label>
     <input type="number" id="numPlayers" min="2" required>
@@ -160,7 +171,13 @@ function generateRows(startIndex = 0) {
         const row = document.createElement('tr');
         row.innerHTML = `<td class="suit-icon">${icon}</td><td>${suit}</td><td>${cards}</td>`;
         playerNames.forEach(() => {
-            row.innerHTML += `<td><input type='number' class='predicted' min='0'><div><button class='button green' onclick='updateScore(this, true)'>✔</button><button class='button red' onclick='updateScore(this, false)'>✘</button></div></td>`;
+            row.innerHTML += `<td>
+                                <input type='number' class='predicted' min='0'>
+                                <div>
+                                    <button class='button green' onclick='updateScore(this, true)'>✔</button>
+                                    <button class='button red' onclick='updateScore(this, false)'>✘</button>
+                                </div>
+                             </td>`;
         });
         row.innerHTML += `<td><button class="button" onclick="lockRow(this)">Lock In</button></td>`;
         tbody.appendChild(row);
@@ -182,16 +199,28 @@ function lockRow(button) {
 function updateScore(button, isWin) {
     const cell = button.closest('td');
     const input = cell.querySelector('input');
-    if (input.disabled) {
-        const playerIndex = Array.from(cell.parentElement.cells).indexOf(cell) - 3; // Offset for non-player columns
-        const scoreBody = document.getElementById('scoreBody');
-        const scoreRow = scoreBody.rows[playerIndex];
-        const scoreCell = scoreRow.cells[1];
-        const currentScore = parseInt(scoreCell.textContent);
-        const roundPoints = parseInt(input.value) * 10;
-        if (isWin) {
-            scoreCell.textContent = currentScore + roundPoints;
-        }
+    const siblingButton = button.classList.contains('green') 
+        ? cell.querySelector('.red') 
+        : cell.querySelector('.green');
+
+    if (!input.disabled) return;
+
+    if (isWin) {
+        button.classList.add('faded');
+        siblingButton.classList.remove('faded');
+    } else {
+        siblingButton.classList.add('faded');
+        button.classList.remove('faded');
+    }
+
+    const playerIndex = Array.from(cell.parentElement.cells).indexOf(cell) - 3; // Offset for non-player columns
+    const scoreBody = document.getElementById('scoreBody');
+    const scoreRow = scoreBody.rows[playerIndex];
+    const scoreCell = scoreRow.cells[1];
+    const currentScore = parseInt(scoreCell.textContent);
+    const roundPoints = parseInt(input.value) * 10;
+    if (isWin) {
+        scoreCell.textContent = currentScore + roundPoints;
     }
 }
 
