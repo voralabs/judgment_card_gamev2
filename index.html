@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Card Game Web App</title>
+    <title>Judgment Card Game Web App</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -54,6 +54,9 @@
         }
         .suit-icon {
             font-size: 24px;
+        }
+        .highlighted-row {
+            background-color: #ffffcc;
         }
     </style>
 </head>
@@ -181,6 +184,7 @@ function generateRows(startIndex = 0) {
         row.innerHTML += `<td><button class="button" onclick="lockRow(this)">Lock In</button></td>`;
         tbody.appendChild(row);
     }
+    highlightCurrentRow();
 }
 
 function addGames() {
@@ -193,6 +197,8 @@ function lockRow(button) {
     const inputs = row.querySelectorAll('input');
     inputs.forEach(input => input.disabled = true);
     button.disabled = true;
+    row.classList.remove('highlighted-row');
+    highlightCurrentRow();
 }
 
 function updateScore(button, isWin) {
@@ -232,6 +238,17 @@ function setupScoreTable() {
         scoreBody.appendChild(row);
     });
     document.getElementById('scoreTable').style.display = 'block';
+}
+
+function highlightCurrentRow() {
+    const rows = document.getElementById('gridTable').querySelector('tbody').rows;
+    for (let row of rows) {
+        const lockButton = row.querySelector('button');
+        if (!lockButton.disabled) {
+            row.classList.add('highlighted-row');
+            break;
+        }
+    }
 }
 </script>
 
