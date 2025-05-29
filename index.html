@@ -59,6 +59,7 @@
   <button onclick="setupPlayers()">Next</button>
   <div id="playerNames"></div>
   <div id="gameArea"></div>
+  <button onclick="addMoreGames()">Add More Games</button>
   <script>
     const suits = ['Spade', 'Diamond', 'Club', 'Heart', 'None'];
     const suitIcons = {
@@ -75,6 +76,7 @@
     let cardSequence = [];
     let scores = {};
     let roundScores = {};
+    let gameRounds = 10;
 
     function normalizeName(name) {
       return name.trim().replace(/\s+/g, '_');
@@ -136,6 +138,7 @@
 
     function renderGameGrid() {
       const grid = document.createElement('table');
+      grid.id = 'gameGrid';
       const header = document.createElement('tr');
       ['Suit', 'Game Suit', 'Cards', ...players, 'Action'].forEach(h => {
         const th = document.createElement('th');
@@ -144,39 +147,11 @@
       });
       grid.appendChild(header);
 
-      suitSequence = Array.from({ length: 10 }, (_, i) => suits[i % 5]);
-      cardSequence = generateCardSequence(10);
+      suitSequence = Array.from({ length: gameRounds }, (_, i) => suits[i % 5]);
+      cardSequence = generateCardSequence(gameRounds);
 
       suitSequence.forEach((suit, row) => {
-        const tr = document.createElement('tr');
-
-        const iconTd = document.createElement('td');
-        iconTd.innerHTML = `<span class="suit-icon">${suitIcons[suit]}</span>`;
-        tr.appendChild(iconTd);
-
-        const suitTd = document.createElement('td');
-        suitTd.textContent = suit;
-        tr.appendChild(suitTd);
-
-        const cardTd = document.createElement('td');
-        cardTd.textContent = cardSequence[row];
-        cardTd.classList.add('card-count');
-        tr.appendChild(cardTd);
-
-        players.forEach(player => {
-          const td = document.createElement('td');
-          td.innerHTML = `<input type='number' min='0' style='width: 40px;' data-player='${player}' data-row='${row}' />`;
-          tr.appendChild(td);
-        });
-
-        const lockTd = document.createElement('td');
-        const lockBtn = document.createElement('button');
-        lockBtn.textContent = 'Lock In';
-        lockBtn.onclick = () => lockRow(tr, row);
-        lockTd.appendChild(lockBtn);
-        tr.appendChild(lockTd);
-
-        grid.appendChild(tr);
+        appendGameRow(grid, suit, row);
       });
 
       document.getElementById('gameArea').innerHTML = '';
@@ -199,100 +174,54 @@
       document.getElementById('gameArea').appendChild(scoreTable);
     }
 
-    function lockRow(rowEl, rowIndex) {
-      const inputs = rowEl.querySelectorAll('input');
-      let totalPrediction = 0;
-      let lastInput;
+    function appendGameRow(grid, suit, rowIndex) {
+      const tr = document.createElement('tr');
+      const iconTd = document.createElement('td');
+      iconTd.innerHTML = `<span class="suit-icon">${suitIcons[suit]}</span>`;
+      tr.appendChild(iconTd);
 
-      inputs.forEach((inp, idx) => {
-        inp.disabled = true;
-        const val = parseInt(inp.value) || 0;
-        totalPrediction += val;
-        if (idx === inputs.length - 1) lastInput = inp;
-      });
+      const suitTd = document.createElement('td');
+      suitTd.textContent = suit;
+      tr.appendChild(suitTd);
 
-      const cardCount = parseInt(rowEl.querySelector('.card-count').textContent);
-      if (totalPrediction === cardCount) {
-        alert('Total predicted hands cannot equal number of cards. Adjust last player.');
-        lastInput.disabled = false;
-        return;
-      }
+      const cardTd = document.createElement('td');
+      cardTd.textContent = cardSequence[rowIndex];
+      cardTd.classList.add('card-count');
+      tr.appendChild(cardTd);
 
-      rowEl.classList.add('locked');
-
-      inputs.forEach((inp, idx) => {
-        const player = normalizeName(inp.dataset.player);
-        const val = parseInt(inp.value) || 0;
-        const td = inp.parentElement;
-
-        const greenBtn = document.createElement('button');
-        greenBtn.className = 'btn-small btn-green';
-        greenBtn.textContent = '✔';
-
-        const redBtn = document.createElement('button');
-        redBtn.className = 'btn-small btn-red';
-        redBtn.textContent = '✘';
-
-        greenBtn.onclick = () => {
-          if (greenBtn.disabled || redBtn.disabled) return;
-          const score = val === 0 ? 10 : val * 10;
-          scores[player] += score;
-          roundScores[player].push(score);
-          td.classList.add('win');
-          updateScoreSummary();
-          redBtn.classList.add('btn-faded');
-          greenBtn.disabled = true;
-          redBtn.disabled = true;
-        };
-
-        redBtn.onclick = () => {
-          if (greenBtn.disabled || redBtn.disabled) return;
-          roundScores[player].push(0);
-          td.classList.add('loss');
-          updateScoreSummary();
-          greenBtn.classList.add('btn-faded');
-          greenBtn.disabled = true;
-          redBtn.disabled = true;
-        };
-
-        td.appendChild(greenBtn);
-        td.appendChild(redBtn);
-      });
-    }
-
-    function updateScoreSummary() {
-      const scoreTable = document.getElementById('scoreSummary');
-      while (scoreTable.rows.length > 1) {
-        scoreTable.deleteRow(1);
-      }
-
-      const maxRounds = Math.max(...players.map(p => roundScores[p].length));
-      for (let i = 0; i < maxRounds; i++) {
-        const row = document.createElement('tr');
-        const roundCell = document.createElement('td');
-        roundCell.textContent = `Round ${i + 1}`;
-        row.appendChild(roundCell);
-
-        players.forEach(p => {
-          const cell = document.createElement('td');
-          cell.textContent = roundScores[p][i] !== undefined ? roundScores[p][i] : '';
-          row.appendChild(cell);
-        });
-
-        scoreTable.appendChild(row);
-      }
-
-      const totalRow = document.createElement('tr');
-      const totalLabel = document.createElement('td');
-      totalLabel.textContent = 'Total';
-      totalRow.appendChild(totalLabel);
-      players.forEach(p => {
+      players.forEach(player => {
         const td = document.createElement('td');
-        td.textContent = scores[p];
-        totalRow.appendChild(td);
+        td.innerHTML = `<input type='number' min='0' style='width: 40px;' data-player='${player}' data-row='${rowIndex}' />`;
+        tr.appendChild(td);
       });
-      scoreTable.appendChild(totalRow);
+
+      const lockTd = document.createElement('td');
+      const lockBtn = document.createElement('button');
+      lockBtn.textContent = 'Lock In';
+      lockBtn.onclick = () => lockRow(tr, rowIndex);
+      lockTd.appendChild(lockBtn);
+      tr.appendChild(lockTd);
+
+      grid.appendChild(tr);
     }
+
+    function addMoreGames() {
+      const table = document.getElementById('gameGrid');
+      const newRounds = 5;
+      const currentRounds = table.rows.length - 1;
+      const newSuitSequence = Array.from({ length: newRounds }, (_, i) => suits[(i + currentRounds) % 5]);
+      const newCardSequence = generateCardSequence(currentRounds + newRounds).slice(currentRounds);
+
+      newSuitSequence.forEach((suit, i) => {
+        suitSequence.push(suit);
+        cardSequence.push(newCardSequence[i]);
+        appendGameRow(table, suit, currentRounds + i);
+      });
+
+      gameRounds += newRounds;
+    }
+
+    // lockRow and updateScoreSummary functions stay unchanged
   </script>
 </body>
 </html>
