@@ -3,225 +3,264 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Card Game</title>
+  <title>Card Game App</title>
   <style>
     body {
       font-family: Arial, sans-serif;
       padding: 20px;
     }
-    table {
+    table, th, td {
+      border: 1px solid #ddd;
       border-collapse: collapse;
-      width: 100%;
-      margin-top: 20px;
-    }
-    th, td {
-      border: 1px solid #ccc;
       padding: 8px;
       text-align: center;
     }
-    .suit-icon {
+    th {
+      background-color: #f2f2f2;
+    }
+    button {
+      margin: 4px;
+    }
+    .icon-cell {
       font-size: 20px;
     }
-    .btn-small {
-      font-size: 10px;
-      padding: 2px 4px;
-      margin: 0 1px;
+    .score-table {
+      margin-top: 20px;
+    }
+    .small-btn {
+      font-size: 12px;
+      padding: 2px 6px;
+      margin: 1px;
+    }
+    #copyTableBtn, #addRoundsBtn {
+      margin-top: 10px;
+      padding: 6px 12px;
+      font-size: 14px;
       cursor: pointer;
-    }
-    .btn-green {
-      background-color: #4CAF50;
-      color: white;
-    }
-    .btn-red {
-      background-color: #f44336;
-      color: white;
-    }
-    .btn-faded {
-      background-color: #ccc !important;
-      color: #666 !important;
-      cursor: default !important;
-    }
-    .locked input {
-      background-color: #eee;
-      border: none;
-    }
-    .win {
-      background-color: #d4edda;
-    }
-    .loss {
-      background-color: #f8d7da;
     }
   </style>
 </head>
 <body>
   <h2>Card Game Setup</h2>
-  <label>Number of Players: <input type="number" id="numPlayers" min="2" /></label>
-  <button onclick="setupPlayers()">Next</button>
+  <div id="setup">
+    <label>Enter number of players: <input type="number" id="numPlayers" min="2" max="10"></label>
+    <button onclick="setupPlayers()">Next</button>
+  </div>
   <div id="playerNames"></div>
-  <div id="gameArea"></div>
-  <button onclick="addMoreGames()">Add More Games</button>
+  <div id="gameContainer"></div>
+  <button id="copyTableBtn" onclick="copyGameTable()">Copy Table</button>
+  <button id="addRoundsBtn" onclick="addMoreRounds()">Add More Rounds</button>
+  <div id="scoreSummary" class="score-table"></div>
+
   <script>
+    let numPlayers = 0;
+    let playerNames = [];
+    let gameData = [];
+    let gameTable;
     const suits = ['Spade', 'Diamond', 'Club', 'Heart', 'None'];
     const suitIcons = {
-      Spade: '♠️',
-      Diamond: '♦️',
-      Club: '♣️',
-      Heart: '♥️',
-      None: '🃏'
+      'Spade': '♠️',
+      'Diamond': '♦️',
+      'Club': '♣️',
+      'Heart': '♥️',
+      'None': '⬜'
     };
-    let maxCards = 0;
-    let numPlayers = 0;
-    let players = [];
-    let suitSequence = [];
-    let cardSequence = [];
-    let scores = {};
-    let roundScores = {};
-    let gameRounds = 10;
-
-    function normalizeName(name) {
-      return name.trim().replace(/\s+/g, '_');
-    }
+    let scoreTotals = [];
+    let cardValues = [];
+    let suitIndex = 0;
+    let cardIndex = 0;
 
     function setupPlayers() {
       numPlayers = parseInt(document.getElementById('numPlayers').value);
-      if (isNaN(numPlayers) || numPlayers < 2) return alert('Enter valid number of players');
-
-      document.getElementById('playerNames').innerHTML = '';
-      const div = document.createElement('div');
-      div.innerHTML = '<h3>Enter Player Names:</h3>';
+      if (!numPlayers || numPlayers < 2 || numPlayers > 10) return alert("Enter valid number of players between 2 and 10");
+      const playerDiv = document.getElementById('playerNames');
+      playerDiv.innerHTML = '<h3>Enter Player Names:</h3>';
       for (let i = 0; i < numPlayers; i++) {
-        div.innerHTML += `<label>Player ${i + 1}: <input type="text" id="p${i}" /></label><br/>`;
+        playerDiv.innerHTML += `Player ${i + 1}: <input type='text' id='player${i}'><br>`;
       }
-      div.innerHTML += '<button onclick="startGame()">Start Game</button>';
-      document.getElementById('playerNames').appendChild(div);
-    }
-
-    function calculateMaxCards() {
-      return Math.floor(52 / numPlayers);
-    }
-
-    function generateCardSequence(rows) {
-      let down = true;
-      let n = maxCards;
-      const sequence = [];
-      while (sequence.length < rows) {
-        sequence.push(n);
-        if (down) {
-          n--;
-          if (n < 0) {
-            n = 1;
-            down = false;
-          }
-        } else {
-          n++;
-          if (n > maxCards) down = true;
-        }
-      }
-      return sequence;
+      playerDiv.innerHTML += `<button onclick='startGame()'>Start Game</button>`;
     }
 
     function startGame() {
-      players = [];
-      scores = {};
-      roundScores = {};
+      playerNames = [];
       for (let i = 0; i < numPlayers; i++) {
-        const name = document.getElementById(`p${i}`).value.trim();
-        if (!name) return alert('All names are required');
-        const cleanName = normalizeName(name);
-        players.push(cleanName);
-        scores[cleanName] = 0;
-        roundScores[cleanName] = [];
+        let name = document.getElementById(`player${i}`).value;
+        if (!name) return alert("All names must be entered");
+        playerNames.push(name.charAt(0).toUpperCase() + name.slice(1).toLowerCase());
       }
-      maxCards = calculateMaxCards();
-      renderGameGrid();
+      generateCardValues();
+      createGameGrid();
     }
 
-    function renderGameGrid() {
-      const grid = document.createElement('table');
-      grid.id = 'gameGrid';
+    function generateCardValues() {
+      let maxCards = Math.floor(52 / numPlayers);
+      cardValues = [];
+      for (let i = maxCards; i >= 0; i--) cardValues.push(i);
+      for (let i = 1; i <= maxCards; i++) cardValues.push(i);
+    }
+
+    function createGameGrid() {
+      const container = document.getElementById('gameContainer');
+      container.innerHTML = '<h3>Game Grid</h3>';
+      gameTable = document.createElement('table');
       const header = document.createElement('tr');
-      ['Suit', 'Game Suit', 'Cards', ...players, 'Action'].forEach(h => {
+      ['Icon', 'Game Suit', 'Number of Cards', ...playerNames, 'Lock In'].forEach(text => {
         const th = document.createElement('th');
-        th.textContent = h;
+        th.textContent = text;
         header.appendChild(th);
       });
-      grid.appendChild(header);
+      gameTable.appendChild(header);
+      scoreTotals = new Array(numPlayers).fill(0);
+      gameData = [];
+      addMoreRounds();
+      container.appendChild(gameTable);
+    }
 
-      suitSequence = Array.from({ length: gameRounds }, (_, i) => suits[i % 5]);
-      cardSequence = generateCardSequence(gameRounds);
+    function addMoreRounds(count = 10) {
+      for (let i = 0; i < count; i++) {
+        const row = document.createElement('tr');
+        const suit = suits[suitIndex % suits.length];
+        const icon = suitIcons[suit];
+        const cards = cardValues[cardIndex % cardValues.length];
+        const round = { predictions: Array(numPlayers).fill(null), locked: false, results: Array(numPlayers).fill(null), cards };
+        gameData.push(round);
 
-      suitSequence.forEach((suit, row) => {
-        appendGameRow(grid, suit, row);
-      });
+        let cell = row.insertCell();
+        cell.className = 'icon-cell';
+        cell.textContent = icon;
 
-      document.getElementById('gameArea').innerHTML = '';
-      document.getElementById('gameArea').appendChild(grid);
+        cell = row.insertCell();
+        cell.textContent = suit;
 
-      const scoreTable = document.createElement('table');
-      scoreTable.id = 'scoreSummary';
+        cell = row.insertCell();
+        cell.textContent = cards;
 
-      const headerRow = document.createElement('tr');
-      const headerCell = document.createElement('th');
-      headerCell.textContent = 'Round / Player';
-      headerRow.appendChild(headerCell);
-      players.forEach(p => {
+        for (let j = 0; j < numPlayers; j++) {
+          const input = document.createElement('input');
+          input.type = 'number';
+          input.min = 0;
+          input.style.width = '40px';
+          input.onchange = () => gameData[gameData.length - 1].predictions[j] = parseInt(input.value);
+          const greenBtn = document.createElement('button');
+          greenBtn.textContent = '✔';
+          greenBtn.className = 'small-btn';
+          const redBtn = document.createElement('button');
+          redBtn.textContent = '✘';
+          redBtn.className = 'small-btn';
+          greenBtn.disabled = true;
+          redBtn.disabled = true;
+          greenBtn.onclick = () => scorePlayer(j, gameData.length - 1, true, greenBtn, redBtn);
+          redBtn.onclick = () => scorePlayer(j, gameData.length - 1, false, redBtn, greenBtn);
+
+          cell = row.insertCell();
+          cell.appendChild(input);
+          cell.appendChild(document.createElement('br'));
+          cell.appendChild(greenBtn);
+          cell.appendChild(redBtn);
+        }
+
+        const lockBtn = document.createElement('button');
+        lockBtn.textContent = 'Lock In';
+        lockBtn.onclick = () => lockRow(gameData.length - 1, row);
+        cell = row.insertCell();
+        cell.appendChild(lockBtn);
+
+        gameTable.appendChild(row);
+        suitIndex++;
+        cardIndex++;
+      }
+    }
+
+    function lockRow(index, row) {
+      const round = gameData[index];
+      const totalPrediction = round.predictions.reduce((a, b) => a + (b ?? 0), 0);
+      if (round.predictions.includes(null)) return alert("All predictions must be filled");
+      if (totalPrediction === round.cards) return alert("Total predictions cannot equal number of cards");
+      round.locked = true;
+      for (let i = 3; i < 3 + numPlayers; i++) {
+        const cell = row.cells[i];
+        cell.querySelector('input').disabled = true;
+        cell.querySelectorAll('button').forEach(b => b.disabled = false);
+      }
+    }
+
+    function scorePlayer(playerIdx, roundIdx, success, clickedBtn, otherBtn) {
+      const round = gameData[roundIdx];
+      if (round.results[playerIdx] !== null) return;
+      round.results[playerIdx] = success;
+      otherBtn.style.opacity = 0.3;
+      clickedBtn.disabled = true;
+      otherBtn.disabled = true;
+      const predicted = round.predictions[playerIdx];
+      let points = 0;
+      if (success) points = predicted === 0 ? 10 : 10 * predicted;
+      scoreTotals[playerIdx] += points;
+      updateScoreTable();
+    }
+
+    function updateScoreTable() {
+      const scoreDiv = document.getElementById('scoreSummary');
+      scoreDiv.innerHTML = '<h3>Total Scores</h3>';
+      const table = document.createElement('table');
+      const header = document.createElement('tr');
+      header.appendChild(document.createElement('th'));
+      playerNames.forEach(name => {
         const th = document.createElement('th');
-        th.textContent = p;
-        headerRow.appendChild(th);
+        th.textContent = name;
+        header.appendChild(th);
       });
-      scoreTable.appendChild(headerRow);
+      table.appendChild(header);
 
-      document.getElementById('gameArea').appendChild(scoreTable);
-    }
+      for (let r = 0; r < gameData.length; r++) {
+        const row = document.createElement('tr');
+        const label = document.createElement('td');
+        label.textContent = `Round ${r + 1}`;
+        row.appendChild(label);
+        playerNames.forEach((_, pIdx) => {
+          const td = document.createElement('td');
+          const round = gameData[r];
+          if (round.results[pIdx] === true) {
+            td.textContent = round.predictions[pIdx] === 0 ? '10' : (round.predictions[pIdx] * 10).toString();
+          } else if (round.results[pIdx] === false) {
+            td.textContent = '0';
+          } else {
+            td.textContent = '-';
+          }
+          row.appendChild(td);
+        });
+        table.appendChild(row);
+      }
 
-    function appendGameRow(grid, suit, rowIndex) {
-      const tr = document.createElement('tr');
-      const iconTd = document.createElement('td');
-      iconTd.innerHTML = `<span class="suit-icon">${suitIcons[suit]}</span>`;
-      tr.appendChild(iconTd);
-
-      const suitTd = document.createElement('td');
-      suitTd.textContent = suit;
-      tr.appendChild(suitTd);
-
-      const cardTd = document.createElement('td');
-      cardTd.textContent = cardSequence[rowIndex];
-      cardTd.classList.add('card-count');
-      tr.appendChild(cardTd);
-
-      players.forEach(player => {
+      const totalRow = document.createElement('tr');
+      const totalLabel = document.createElement('td');
+      totalLabel.textContent = 'Total';
+      totalRow.appendChild(totalLabel);
+      scoreTotals.forEach(score => {
         const td = document.createElement('td');
-        td.innerHTML = `<input type='number' min='0' style='width: 40px;' data-player='${player}' data-row='${rowIndex}' />`;
-        tr.appendChild(td);
+        td.textContent = score;
+        totalRow.appendChild(td);
       });
+      table.appendChild(totalRow);
 
-      const lockTd = document.createElement('td');
-      const lockBtn = document.createElement('button');
-      lockBtn.textContent = 'Lock In';
-      lockBtn.onclick = () => lockRow(tr, rowIndex);
-      lockTd.appendChild(lockBtn);
-      tr.appendChild(lockTd);
-
-      grid.appendChild(tr);
+      scoreDiv.appendChild(table);
     }
 
-    function addMoreGames() {
-      const table = document.getElementById('gameGrid');
-      const newRounds = 5;
-      const currentRounds = table.rows.length - 1;
-      const newSuitSequence = Array.from({ length: newRounds }, (_, i) => suits[(i + currentRounds) % 5]);
-      const newCardSequence = generateCardSequence(currentRounds + newRounds).slice(currentRounds);
-
-      newSuitSequence.forEach((suit, i) => {
-        suitSequence.push(suit);
-        cardSequence.push(newCardSequence[i]);
-        appendGameRow(table, suit, currentRounds + i);
-      });
-
-      gameRounds += newRounds;
+    function copyGameTable() {
+      let text = 'Game Suit\tNumber of Cards\t' + playerNames.join('\t') + '\n';
+      for (let i = 0; i < gameData.length; i++) {
+        const row = gameTable.rows[i + 1];
+        let rowData = [];
+        rowData.push(row.cells[1].textContent); // Game Suit
+        rowData.push(row.cells[2].textContent); // Number of Cards
+        for (let j = 0; j < numPlayers; j++) {
+          const cell = row.cells[3 + j];
+          const val = cell.querySelector('input')?.value ?? '-';
+          rowData.push(val);
+        }
+        text += rowData.join('\t') + '\n';
+      }
+      navigator.clipboard.writeText(text).then(() => alert('Game table copied to clipboard!'));
     }
-
-    // lockRow and updateScoreSummary functions stay unchanged
   </script>
 </body>
 </html>
